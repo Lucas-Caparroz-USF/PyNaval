@@ -1,12 +1,12 @@
-class Navio:  # Cria a classe Navio
-    def __init__(self, tamanho, nome):  # Construtor da classe
-        self.tamanho = tamanho          # Define quantas casas o navio ocupa
-        self.nome = nome                # Nome do navio (porta-aviões, encouraçado...)
-        self.posicoes = []              # Lista de posições do navio
-        self.afundado = False           # Status do navio: afundado ou não
+# navio.py
+# Define a classe Navio
 
-    def verificar_afundado(self):  # Verifica se navio foi completamente atingido
-        if all(posicao['atingido'] for posicao in self.posicoes):  # Se todas as posições foram atingidas
-            self.afundado = True  # Marca navio como afundado
-        return self.afundado  # Retorna status
-
+class Navio:
+    def __init__(self, tamanho):
+        self.tamanho = tamanho  # Quantas células o navio ocupa
+        self.atingidos = 0  # Contador de acertos
+        self.celulas = []  # Lista de posições do navio (linha, coluna)
+    
+    def afundado(self):
+        # Retorna True se todos os quadrados foram atingidos
+        return self.atingidos >= self.tamanho
