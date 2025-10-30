@@ -1,6 +1,4 @@
 # jogo.py
-# Classe principal do Jogo
-
 from .jogador import Jogador
 
 class Jogo:
@@ -9,12 +7,12 @@ class Jogo:
         self.inimigo = Jogador()
 
     def iniciar(self):
-        # Posiciona navios automaticamente
+        """Posiciona navios automaticamente"""
         self.jogador.posicionar_navios_automatico()
         self.inimigo.posicionar_navios_automatico()
 
     def verificar_vitoria(self):
-        # Verifica se todos navios do inimigo ou jogador foram afundados
+        """Verifica se todos navios do inimigo ou jogador foram afundados"""
         if all(navio.afundado() for navio in self.inimigo.navios):
             return "Jogador"
         if all(navio.afundado() for navio in self.jogador.navios):

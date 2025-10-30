@@ -6,22 +6,19 @@ import pygame
 class Tabuleiro:
     def __init__(self, tamanho=10):
         self.tamanho = tamanho  # Tabuleiro 10x10
-        # Inicializa grid: cada célula é um dicionário
+        # Cada célula é um dicionário com navio e atingido
         self.grid = [[{'navio': None, 'atingido': False} for _ in range(tamanho)] for _ in range(tamanho)]
 
     def posicionar_navio(self, navio, linha, coluna, orientacao):
-        """
-        Posiciona navio na grid.
-        orientacao = 'H' ou 'V'
-        """
+        """Posiciona navio na grid. orientacao = 'H' ou 'V'"""
         celulas = []
         for i in range(navio.tamanho):
             li = linha + i if orientacao == 'V' else linha
             co = coluna + i if orientacao == 'H' else coluna
             if li >= self.tamanho or co >= self.tamanho:
-                return False  # Não cabe no tabuleiro
+                return False
             if self.grid[li][co]['navio'] is not None:
-                return False  # Já existe navio nesta posição
+                return False
             celulas.append((li, co))
         # Posiciona navio
         for li, co in celulas:
@@ -36,7 +33,7 @@ class Tabuleiro:
         """
         celula = self.grid[linha][coluna]
         if celula['atingido']:
-            return "repetido"  # Já foi atacada
+            return "repetido"
         celula['atingido'] = True
         if celula['navio'] is None:
             return "agua"

@@ -1,19 +1,15 @@
 # jogador.py
-# Classe Jogador
-
 from .tabuleiro import Tabuleiro
 from .navio import Navio
 import random
 
 class Jogador:
     def __init__(self):
-        self.tabuleiro = Tabuleiro()  # Cria tabuleiro
-        self.navios = []  # Lista de navios do jogador
+        self.tabuleiro = Tabuleiro()
+        self.navios = []
 
     def posicionar_navios_automatico(self):
-        """
-        Posiciona automaticamente 5 navios no tabuleiro
-        """
+        """Posiciona automaticamente 5 navios no tabuleiro"""
         tamanhos = [5,4,3,3,2]
         for t in tamanhos:
             colocado = False

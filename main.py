@@ -1,183 +1,198 @@
-import pygame  # Biblioteca gráfica
-import random  # Para ataques automáticos do inimigo
-from classes.jogo import Jogo  # Classe principal do jogo
-from classes.tabuleiro import desenhar_tabuleiro  # Função para desenhar tabuleiros
+import pygame
+import random
+from classes.jogo import Jogo
+from classes.tabuleiro import desenhar_tabuleiro
 
-pygame.init()  # Inicializa todos os módulos do pygame
+pygame.init()
 
-# Captura resolução do monitor
-info = pygame.display.Info()  # Obtém informações do monitor
-LARGURA, ALTURA = info.current_w - 25, info.current_h - 100  # Define tamanho da janela
+# ------------------- Configurações iniciais -------------------
+info = pygame.display.Info()
+LARGURA, ALTURA = info.current_w - 25, info.current_h - 100
+TELA = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("PyNaval")
 
-# Cria janela
-TELA = pygame.display.set_mode((LARGURA, ALTURA))  # Janela do jogo
-pygame.display.set_caption("PyNaval")  # Título da janela
-
-# Tamanho das células e tabuleiros
-CELULA = 40  # Pixels por célula
-TAMANHO_TABULEIRO = 10  # 10x10 células
-
-# Carrega imagem de fundo
-fundo = pygame.image.load("images/fundo.jpg")  # Caminho da imagem
-fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))  # Redimensiona para tela
-
-# Overlay semitransparente para escurecer fundo
-overlay = pygame.Surface((LARGURA, ALTURA))  # Superfície da tela
-overlay.set_alpha(100)  # Transparência (0-255)
-overlay.fill((0, 0, 0))  # Preenche com preto
-
-# Cria objeto do jogo
-jogo = Jogo()  # Instancia classe Jogo
-jogo.iniciar()  # Posiciona navios automaticamente
-print("Navios posicionados para Jogador e Inimigo.")  # Debug
-
-# Espaço entre tabuleiros
+CELULA = 40
+TAMANHO_TABULEIRO = 10
 ESPACO = 100
+MARGEM_SUPERIOR = 100
+MARGEM_LATERAL = 60
+ALTURA_CAIXA_MENSAGENS = 150
 
-# Centraliza os tabuleiros
-POS_X_JOGADOR = (LARGURA - (TAMANHO_TABULEIRO * CELULA * 2 + ESPACO)) // 2
-POS_Y_JOGADOR = (ALTURA - (TAMANHO_TABULEIRO * CELULA)) // 2
-POS_X_INIMIGO = POS_X_JOGADOR + TAMANHO_TABULEIRO * CELULA + ESPACO
-POS_Y_INIMIGO = POS_Y_JOGADOR
+# Cores
+AMARELO = (255, 255, 0)
+AZUL = (0, 0, 64)
+PRETO = (0,0,0)
 
-# Turno inicial do jogador
-turno_jogador = True
-
-# Fonte para mensagens de vitória
-fonte = pygame.font.SysFont(None, 48)  # Fonte padrão tamanho 48
-
-# Fonte para números, letras e mensagens
-fonte_label = pygame.font.SysFont(None, 30)  # Fonte pequena amarela
-
-# Letras para linhas
+# Fontes
+fonte = pygame.font.SysFont(None, 48)
+fonte_label = pygame.font.SysFont(None, 30)
 letras = ["A","B","C","D","E","F","G","H","I","J"]
 
-# Margens do retângulo azul sólido
-MARGEM_SUPERIOR = 100  # Mais espaço para títulos
-MARGEM_LATERAL = 60  # Margem lateral
-ALTURA_CAIXA_MENSAGENS = 150  # Altura da caixa de mensagens inferior
+# Fundo
+fundo = pygame.image.load("images/fundo.jpg")
+fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))
+overlay = pygame.Surface((LARGURA, ALTURA))
+overlay.set_alpha(100)
+overlay.fill(PRETO)
 
-# Calcula limites do retângulo azul arredondado
-retangulo_x = POS_X_JOGADOR - MARGEM_LATERAL
-retangulo_y = POS_Y_JOGADOR - MARGEM_SUPERIOR
-retangulo_largura = 2 * TAMANHO_TABULEIRO * CELULA + ESPACO + 2 * MARGEM_LATERAL
-retangulo_altura = TAMANHO_TABULEIRO * CELULA + MARGEM_SUPERIOR + ALTURA_CAIXA_MENSAGENS
+# ------------------- Funções auxiliares -------------------
 
-# Lista para armazenar mensagens exibidas na tela
-mensagens = []  # Cada elemento será uma string
-MAX_MENSAGENS = 6  # Número máximo de mensagens visíveis
+def desenhar_tela_inicio():
+    TELA.blit(fundo, (0,0))
+    TELA.blit(overlay, (0,0))
+    titulo = fonte.render("PYNAVAL", True, AMARELO)
+    TELA.blit(titulo, (LARGURA//2 - titulo.get_width()//2, ALTURA//3))
+    
+    botoes = []
+    niveis = ["Fácil", "Médio", "Difícil"]
+    for i, nivel in enumerate(niveis):
+        rect = pygame.Rect(LARGURA//2 - 100, ALTURA//2 + i*70, 200, 50)
+        pygame.draw.rect(TELA, AZUL, rect, border_radius=10)
+        texto = fonte_label.render(nivel, True, AMARELO)
+        TELA.blit(texto, (rect.centerx - texto.get_width()//2, rect.centery - texto.get_height()//2))
+        botoes.append((rect, nivel))
+    pygame.display.update()
+    return botoes
 
-rodando = True  # Controla loop principal
-
-# Loop principal do jogo
-while rodando:
-    try:
-        # Captura eventos
+def escolher_nivel():
+    rodando_inicio = True
+    nivel_selecionado = None
+    botoes = desenhar_tela_inicio()
+    while rodando_inicio:
         for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:  # Fechar janela
-                rodando = False
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                x, y = evento.pos
+                for rect, nivel in botoes:
+                    if rect.collidepoint(x, y):
+                        nivel_selecionado = nivel
+                        rodando_inicio = False
+    return nivel_selecionado
 
-            # Clique do jogador no tabuleiro inimigo
+def tela_vitoria(vencedor):
+    rodando = True
+    botoes = []
+    while rodando:
+        TELA.blit(fundo,(0,0))
+        TELA.blit(overlay,(0,0))
+        texto = fonte.render(f"{vencedor} venceu!", True, AMARELO)
+        TELA.blit(texto, (LARGURA//2 - texto.get_width()//2, ALTURA//3))
+        
+        # Botões
+        rect_reiniciar = pygame.Rect(LARGURA//2 - 110, ALTURA//2, 220, 50)
+        rect_fechar = pygame.Rect(LARGURA//2 - 110, ALTURA//2 + 70, 220, 50)
+        pygame.draw.rect(TELA, AZUL, rect_reiniciar, border_radius=10)
+        pygame.draw.rect(TELA, AZUL, rect_fechar, border_radius=10)
+        texto_reiniciar = fonte_label.render("Reiniciar partida", True, AMARELO)
+        TELA.blit(texto_reiniciar,
+          (rect_reiniciar.centerx - texto_reiniciar.get_width()//2,
+           rect_reiniciar.centery - texto_reiniciar.get_height()//2))
+        texto_fechar = fonte_label.render("Fechar jogo", True, AMARELO)
+        TELA.blit(texto_fechar,
+          (rect_fechar.centerx - texto_fechar.get_width()//2,
+           rect_fechar.centery - texto_fechar.get_height()//2))
+        botoes = [(rect_reiniciar, "reiniciar"), (rect_fechar, "fechar")]
+        pygame.display.update()
+        
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                x, y = evento.pos
+                for rect, acao in botoes:
+                    if rect.collidepoint(x, y):
+                        return acao  # Retorna ação escolhida
+
+def rodar_jogo(nivel):
+    jogo = Jogo()
+    jogo.iniciar()
+    
+    altura_total_retangulo = TAMANHO_TABULEIRO * CELULA + MARGEM_SUPERIOR + ALTURA_CAIXA_MENSAGENS
+    retangulo_y = (ALTURA - altura_total_retangulo) // 2
+    retangulo_x = (LARGURA - (2 * TAMANHO_TABULEIRO * CELULA + ESPACO + 2 * MARGEM_LATERAL)) // 2
+    retangulo_largura = 2 * TAMANHO_TABULEIRO * CELULA + ESPACO + 2 * MARGEM_LATERAL
+    retangulo_altura = altura_total_retangulo
+
+    POS_X_JOGADOR = retangulo_x + MARGEM_LATERAL
+    POS_Y_JOGADOR = retangulo_y + MARGEM_SUPERIOR
+    POS_X_INIMIGO = POS_X_JOGADOR + TAMANHO_TABULEIRO * CELULA + ESPACO
+    POS_Y_INIMIGO = POS_Y_JOGADOR
+
+    turno_jogador = True
+    mensagens = []
+    MAX_MENSAGENS = 6
+    rodando = True
+
+    while rodando:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                return "fechar"
             if evento.type == pygame.MOUSEBUTTONDOWN and turno_jogador:
-                x, y = evento.pos  # Pega posição do clique
-                linha = (y - POS_Y_INIMIGO) // CELULA  # Calcula linha
-                coluna = (x - POS_X_INIMIGO) // CELULA  # Calcula coluna
-
-                # Verifica se clique está dentro do tabuleiro
+                x, y = evento.pos
+                linha = (y - POS_Y_INIMIGO) // CELULA
+                coluna = (x - POS_X_INIMIGO) // CELULA
                 if 0 <= linha < TAMANHO_TABULEIRO and 0 <= coluna < TAMANHO_TABULEIRO:
                     resultado = jogo.inimigo.tabuleiro.receber_tiro(linha, coluna)
-                    if resultado == "acertou":
-                        msg = f"Acertou navio em ({linha},{coluna})!"
-                        print(msg)
-                        mensagens.append(msg)
-                        turno_jogador = False
-                    elif resultado == "agua":
-                        msg = f"Errou em ({linha},{coluna})."
-                        print(msg)
-                        mensagens.append(msg)
-                        turno_jogador = False
-                    elif resultado == "afundou":
-                        msg = f"Afundou um navio!"
-                        print(msg)
-                        mensagens.append(msg)
+                    if resultado in ["acertou","agua","afundou"]:
+                        mensagens.append(f"{resultado} em ({linha},{coluna})" if resultado!="afundou" else "Afundou um navio!")
                         turno_jogador = False
                     elif resultado == "repetido":
-                        msg = "Selecione outra coordenada."
-                        print(msg)
-                        mensagens.append(msg)
+                        mensagens.append("Selecione outra coordenada.")
 
-        # Turno do inimigo
         if not turno_jogador:
             while True:
-                li, co = random.randint(0, 9), random.randint(0, 9)
+                li, co = random.randint(0,9), random.randint(0,9)
                 resultado = jogo.jogador.tabuleiro.receber_tiro(li, co)
                 if resultado != "repetido":
-                    msg = f"Inimigo atacou ({li},{co})"
-                    print(msg)
-                    mensagens.append(msg)
+                    mensagens.append(f"Inimigo atacou ({li},{co})")
                     break
             turno_jogador = True
 
-        # Desenha fundo
-        TELA.blit(fundo, (0, 0))  # Fundo
-        TELA.blit(overlay, (0, 0))  # Escurece fundo
+        # Desenha tela
+        TELA.blit(fundo,(0,0))
+        TELA.blit(overlay,(0,0))
+        pygame.draw.rect(TELA, AZUL, (retangulo_x, retangulo_y, retangulo_largura, retangulo_altura), border_radius=20)
 
-        # Desenha retângulo azul sólido arredondado envolvendo os tabuleiros e área de mensagens
-        pygame.draw.rect(TELA, (0, 0, 64),
-                         (retangulo_x, retangulo_y, retangulo_largura, retangulo_altura),
-                         border_radius=20)
+        # Títulos
+        titulo_jogador = fonte.render("JOGADOR", True, AMARELO)
+        TELA.blit(titulo_jogador, (POS_X_JOGADOR + TAMANHO_TABULEIRO*CELULA//2 - titulo_jogador.get_width()//2, POS_Y_JOGADOR - MARGEM_SUPERIOR + 20))
+        titulo_inimigo = fonte.render("ADVERSÁRIO", True, AMARELO)
+        TELA.blit(titulo_inimigo, (POS_X_INIMIGO + TAMANHO_TABULEIRO*CELULA//2 - titulo_inimigo.get_width()//2, POS_Y_INIMIGO - MARGEM_SUPERIOR + 20))
 
-        # Títulos acima dos tabuleiros
-        titulo_jogador = fonte.render("JOGADOR", True, (255, 255, 0))
-        TELA.blit(titulo_jogador,
-                  (POS_X_JOGADOR + TAMANHO_TABULEIRO*CELULA//2 - titulo_jogador.get_width()//2,
-                   POS_Y_JOGADOR - MARGEM_SUPERIOR + 20))
-
-        titulo_inimigo = fonte.render("ADVERSÁRIO", True, (255, 255, 0))
-        TELA.blit(titulo_inimigo,
-                  (POS_X_INIMIGO + TAMANHO_TABULEIRO*CELULA//2 - titulo_inimigo.get_width()//2,
-                   POS_Y_INIMIGO - MARGEM_SUPERIOR + 20))
-
-        # Letras e números tabuleiro jogador
+        # Letras e números
         for i in range(TAMANHO_TABULEIRO):
-            num_text = fonte_label.render(str(i), True, (255, 255, 0))
+            num_text = fonte_label.render(str(i), True, AMARELO)
             TELA.blit(num_text, (POS_X_JOGADOR + i*CELULA + CELULA//3, POS_Y_JOGADOR - CELULA//2))
-            letra_text = fonte_label.render(letras[i], True, (255, 255, 0))
+            letra_text = fonte_label.render(letras[i], True, AMARELO)
             TELA.blit(letra_text, (POS_X_JOGADOR - CELULA//1.5, POS_Y_JOGADOR + i*CELULA + CELULA//4))
 
-        # Letras e números tabuleiro inimigo
-        for i in range(TAMANHO_TABULEIRO):
-            num_text = fonte_label.render(str(i), True, (255, 255, 0))
             TELA.blit(num_text, (POS_X_INIMIGO + i*CELULA + CELULA//3, POS_Y_INIMIGO - CELULA//2))
-            letra_text = fonte_label.render(letras[i], True, (255, 255, 0))
             TELA.blit(letra_text, (POS_X_INIMIGO - CELULA//1.5, POS_Y_INIMIGO + i*CELULA + CELULA//4))
 
-        # Desenha tabuleiros
         desenhar_tabuleiro(TELA, jogo.jogador.tabuleiro, POS_X_JOGADOR, POS_Y_JOGADOR, mostrar_navios=True)
         desenhar_tabuleiro(TELA, jogo.inimigo.tabuleiro, POS_X_INIMIGO, POS_Y_INIMIGO, mostrar_navios=False)
 
-        # Exibe mensagens na parte inferior do retângulo
         y_mensagem = POS_Y_JOGADOR + TAMANHO_TABULEIRO * CELULA + 10
-        for msg in mensagens[-MAX_MENSAGENS:]:  # Últimas mensagens
-            texto_msg = fonte_label.render(msg, True, (255, 255, 0))
+        for msg in mensagens[-MAX_MENSAGENS:]:
+            texto_msg = fonte_label.render(msg, True, AMARELO)
             TELA.blit(texto_msg, (retangulo_x + 20, y_mensagem))
             y_mensagem += texto_msg.get_height() + 5
 
-        # Verifica vitória
         vencedor = jogo.verificar_vitoria()
         if vencedor:
-            texto = fonte.render(f"{vencedor} venceu!", True, (255, 255, 0))
-            TELA.blit(texto, (LARGURA//2 - texto.get_width()//2, ALTURA//2 - texto.get_height()//2))
-            pygame.display.update()
-            pygame.time.delay(5000)
-            break
+            acao = tela_vitoria(vencedor)
+            if acao == "reiniciar":
+                return rodar_jogo(nivel)  # Reinicia jogo
+            else:
+                pygame.quit()
+                exit()
 
-        # Atualiza tela
         pygame.display.update()
 
-    except Exception as e:
-        print("Erro:", e)
-        mensagens.append(f"Erro: {e}")
-        rodando = False
-
-pygame.quit()  # Encerra pygame
+# ------------------- Programa principal -------------------
+nivel = escolher_nivel()
+rodar_jogo(nivel)
+pygame.quit()
